@@ -1,0 +1,1 @@
+# voyage-rails-analytics
