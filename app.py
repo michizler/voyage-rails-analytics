@@ -55,6 +55,11 @@ class PredictionResponse(BaseModel):
     ticket_price_predication: float
 
 
+@app.get("/")
+def read_root():
+    return {"status": "Ok", "message": "Api is running successfully!"}
+
+
 @app.post("/predict", response_model=PredictionResponse)
 def predict(request: PredictionRequest):
     # Convert the request to a pandas DataFrame
@@ -62,6 +67,6 @@ def predict(request: PredictionRequest):
 
     # Make a prediction
     prediction = model["pipeline"].predict(input_df)
-    
+
     # Return the prediction in the response model
     return PredictionResponse(ticket_price_predication=float(prediction[0]))
