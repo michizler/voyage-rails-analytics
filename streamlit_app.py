@@ -228,7 +228,7 @@ st.markdown(
     <div class="hero-card">
         <h1 style="margin-bottom: 0.2rem;">🚆 Voyage Rails Forecast Demo</h1>
         <p style="margin-top: 0.3rem; font-size: 1.05rem;">
-            Interactive Streamlit interface for testing your FastAPI prediction endpoint.
+            Interactive Streamlit interface for testing FastAPI prediction endpoint.
         </p>
     </div>
     """,
@@ -471,14 +471,3 @@ if submitted:
             st.code(detail)
     except Exception as e:
         st.error(f"Prediction failed: {e}")
-
-# -----------------------------
-# Footer help
-# -----------------------------
-# with st.expander("How to run this demo locally"):
-#     st.code(
-#         """pip install streamlit requests
-# streamlit run streamlit_app.py""",
-#         language="bash",
-#     )
-#     st.caption("Ensure your FastAPI service is already running, for example on http://localhost:8000")
