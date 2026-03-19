@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import Literal
 import os
@@ -7,10 +7,16 @@ import mlflow
 import mlflow.sklearn
 from contextlib import asynccontextmanager
 
-# mlflow tracking uri
-track_uri = "sqlite:///c:/Users/brigh/Documents/amdari-internship/projects/voyage-rails-analytics/preprocessing/mlflow.db"
-model_uri = "file:c:/Users/brigh/Documents/amdari-internship/projects/voyage-rails-analytics/preprocessing/mlruns/2/models/m-16f23089d41e4faa84a7979dd787394a/artifacts"
+# Docker-safe defaults, overridable via environment variables
+track_uri = os.getenv(
+    "MLFLOW_TRACKING_URI",
+    "sqlite:////app/preprocessing/mlflow.db",
+)
 
+model_uri = os.getenv(
+    "MLFLOW_MODEL_URI",
+    "file:///app/preprocessing/mlruns/2/models/m-16f23089d41e4faa84a7979dd787394a/artifacts",
+)
 
 model = {}
 
@@ -62,11 +68,6 @@ def read_root():
 
 @app.post("/predict", response_model=PredictionResponse)
 def predict(request: PredictionRequest):
-    # Convert the request to a pandas DataFrame
     input_df = pd.DataFrame([request.model_dump()])
-
-    # Make a prediction
     prediction = model["pipeline"].predict(input_df)
-
-    # Return the prediction in the response model
     return PredictionResponse(ticket_price_predication=float(prediction[0]))
