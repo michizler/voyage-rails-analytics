@@ -116,7 +116,7 @@ st.sidebar.title("⚙️ API Settings")
 
 base_url = st.sidebar.text_input(
     "FastAPI Base URL",
-    value="http://localhost:8000",
+    value="http://backend:8000",
     help="Example: http://localhost:8000",
 )
 
