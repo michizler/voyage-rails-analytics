@@ -39,7 +39,7 @@
 - [Usage Example](#usage-example)
 - [Tech Stack](#tech-stack)
 - [Roadmap](#roadmap)
-- [License](#license)
+- [Author](#author)
 
 ---
 
