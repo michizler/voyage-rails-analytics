@@ -13,7 +13,6 @@
 ![MLflow](https://img.shields.io/badge/MLflow-2.10+-0194E2?style=for-the-badge&logo=mlflow&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 
-[**GitHub Repository**](https://github.com/michizler/voyage-rails-analytics) ·
 
 </div>
 
