@@ -192,6 +192,10 @@ voyage-rails-analytics/
 ├── Dockerfile.streamlit              # Streamlit service image
 ├── docker-compose.yml                # Orchestrates both services
 │
+├── retrain/
+│   ├── train_voyagerail.py           # October 2026 retrain on quote-time features
+│   └── model_card.json               # Its metrics, excluded features and leakage check
+│
 ├── requirements.txt                  # Python dependencies
 ├── mlflow.db                         # MLflow production tracking DB
 ├── .gitignore
@@ -236,12 +240,13 @@ The dataset (`source-data/travel_data.csv`) contains historical booking records 
 
 ### Feature Engineering
 
-All preprocessing is documented in `preprocessing/preprocess.ipynb`:
+All preprocessing is in `preprocessing/preprocess.ipynb`.
 
-- **Categorical encoding** — One-hot encoding for nominal variables (origin, destination, booking_channel); label encoding for ordinal features (seat_class, loyalty_status)
-- **Numerical scaling** — Standard scaling applied to continuous features for model convergence
-- **Interaction features** — `load_factor × demand_index`, `days_before_travel × route_category` captured non-linear relationships between booking timing and route type
-- **Temporal features** — Derived booking window buckets (≤7 days, 8–21 days, >21 days) from `days_before_travel`
+- **Categorical encoding.** One-hot encoding of seat class, channel, origin, destination, route category, customer segment and loyalty tier.
+- **Numerical scaling.** Standard scaling of the numeric columns.
+- **Missing values.** Missing loyalty tiers are filled with "None". Missing base fares and premiums are filled from the ticket price.
+
+These are the original notebook's steps. The October 2026 update below explains the problem they caused.
 
 ---
 
@@ -255,42 +260,45 @@ All preprocessing is documented in `preprocessing/preprocess.ipynb`:
 
 ### Models Evaluated
 
-Multiple regression algorithms were trained and compared:
-
 | Model | Purpose |
 |-------|---------|
-| **Linear Regression** | Baseline — establishes a floor for expected performance |
-| **Random Forest Regressor** | Captures non-linear relationships, robust to feature scale |
-| **Gradient Boosting Regressor** | Strong out-of-the-box performance on tabular data |
-| **XGBoost** | Production-grade gradient boosting with regularisation |
+| **Linear Regression** | Baseline that sets a floor for expected performance |
+| **Random Forest Regressor** | Captures non-linear relationships |
+| **Gradient Boosting Regressor** | Strong default performance on tabular data |
 
-Each model was trained with 80/20 train/test split, 5-fold cross-validation, and hyperparameters tuned via grid search. The **best-performing model was serialised to `model.pkl`** and is the one loaded by the FastAPI backend at runtime.
+The notebook trained each model on one 80/20 split with a fixed seed and tracked every run in MLflow. Random forest scored best, with an R² of 0.97 on the holdout set, against 0.77 for linear regression. The October 2026 update below explains why 0.97 was too high.
 
 ### Output
 
-The model returns a predicted ticket price (e.g., **£37.30** for a Leeds→York Standard class booking, 21 days before travel, with demand index 0.92 and load factor 0.44).
+The model returns a predicted ticket price, for example **£37.30** for a Leeds to York Standard booking 21 days before travel.
 
 ---
 
 ## Explainability with SHAP
 
-**Commercial teams will not act on pricing recommendations they cannot explain.** This is why explainability was a first-class requirement, not an afterthought.
+SHAP was used to explain the linear model, and `preprocessing/shap_summary_plot.png` shows the features that drive its prices. The retrained model in the update below returns SHAP contributions for every quote.
 
-SHAP (SHapley Additive exPlanations) values were computed for every prediction, producing:
+---
 
-- **Global feature importance** — which features drive pricing decisions across the entire dataset
-- **Per-prediction explanations** — for any given booking, which features pushed the predicted price up or down, and by how much
-- **Dependence plots** — how predicted price changes as a single feature (e.g., `days_before_travel`) varies, holding others constant
+## October 2026 update
 
-The saved `preprocessing/shap_summary_plot.png` visualises the top contributors to pricing decisions. Typical drivers include:
+When I came back to serve this model on my site, the trained model was not in the repo, so I retrained it and checked every feature again. Four of them leaked information a fare desk could not have.
 
-1. `demand_index` (strongest signal)
-2. `load_factor`
-3. `days_before_travel`
-4. `seat_class`
-5. `route_category`
+- `Price_Premium` is the ticket price minus the base fare. In every row where it is present, base fare plus premium equals the ticket price exactly, so the target was sitting inside two of the inputs.
+- `Seats_Sold_Realized` equals the final number of bookings for its departure in every case. It is a tally taken after the train has left, and `Remaining_Seats_Realized` and `Load_Factor` are built from it.
 
-This gives commercial teams a defensible narrative: *"We're recommending £37.30 for this Leeds→York booking because demand is 92% of capacity benchmark, with 21 days lead time and moderate load factor — historically this configuration yields the best revenue."*
+I removed all four and kept only what a booking clerk knows when quoting. Distance, route category and capacity now come from the chosen route.
+
+| Model, same 80/20 split and seed | Holdout R² | Average error |
+|---|---|---|
+| Gradient boosting, quote-time features (new) | 0.903 | £6.53 |
+| Random forest, quote-time features | 0.864 | £7.40 |
+| Linear regression, quote-time features | 0.713 | £11.21 |
+| Random forest with the leaked columns | 0.924 | £5.51 |
+
+Five-fold cross-validation on the training split gives the new model an R² of 0.903 ± 0.002. Gradient boosting replaced random forest because it won on accuracy, size (0.6 MB against 17 MB) and training time.
+
+The retraining script and the model card with every metric are in [`retrain/`](retrain/).
 
 ---
 
@@ -509,8 +517,8 @@ Response:
 |-------|-----------|---------|
 | **Language** | Python 3.10+ | Core implementation |
 | **Data Processing** | Pandas, NumPy | Ingestion, cleaning, feature engineering |
-| **Machine Learning** | Scikit-learn, XGBoost | Model training & evaluation |
-| **Explainability** | SHAP | Per-prediction and global feature attribution |
+| **Machine Learning** | Scikit-learn (random forest, gradient boosting) | Model training & evaluation |
+| **Explainability** | SHAP | Feature attribution |
 | **Experiment Tracking** | MLflow | Run logging, model registry, reproducibility |
 | **API Framework** | FastAPI, Pydantic, Uvicorn | Async REST serving with schema validation |
 | **Front-End / Demo** | Streamlit, Plotly | Interactive UI for stakeholders |

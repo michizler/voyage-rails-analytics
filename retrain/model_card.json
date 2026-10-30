@@ -1,0 +1,136 @@
+{
+ "trained_at": "2026-10-29",
+ "data": {
+  "file": "travel_data.csv",
+  "sha256": "4940b312e577fa5cc5f95bd053050f91cdf6a84a7841f74cc85fe95ae7a62e27",
+  "rows": 519713,
+  "source_repo": "https://github.com/michizler/voyage-rails-analytics",
+  "source_commit": "5c52136d3db34c5ff7f855f72f4a49b1dc30bc04",
+  "travel_dates": "2025-01-01 to 2025-03-31",
+  "synthetic": true
+ },
+ "split": {
+  "holdout_fraction": 0.2,
+  "seed": 42,
+  "cv": "5-fold KFold on the training split, shuffled, seed 42"
+ },
+ "target": "Ticket_Price_GBP (fare in GBP)",
+ "features": [
+  "Distance_km",
+  "Booking_Frequency_Qtr",
+  "Average_Spend_GBP",
+  "Total_Seats",
+  "Demand_Index",
+  "Days_Before_Travel",
+  "Seat_Class",
+  "Booking_Channel",
+  "Origin",
+  "Destination",
+  "Route_Category",
+  "Customer_Segment",
+  "Loyalty_Status"
+ ],
+ "excluded_features": {
+  "Price_Premium": "It is the ticket price minus the base fare, which puts the answer inside a feature.",
+  "Base_Price_At_Booking": "It is the ticket price minus the premium, so it also comes from the target.",
+  "Seats_Sold_Realized": "It is the final number of seats sold for the departure, which is not known when a fare is quoted.",
+  "Remaining_Seats_Realized": "It is total seats minus final seats sold, which is not known when a fare is quoted.",
+  "Load_Factor": "It is final seats sold over total seats, which is not known when a fare is quoted."
+ },
+ "data_notes": [
+  "The data is synthetic. In it, fares rise with booking lead time for about three weeks and then level off (mean \u00a348.70 same day, about \u00a377 from 15 days out). That is the opposite of real UK advance fares. The model reproduces the data and is not pricing advice.",
+  "Bookings are front-loaded. A third are same-day and only 655 of 519,713 are more than 60 days out, so the curve beyond 60 days rests on thin data.",
+  "Demand_Index is one score per departure in the source data. The demo treats it as the operator's demand forecast, available when quoting."
+ ],
+ "model": {
+  "name": "Gradient boosting (HistGradientBoostingRegressor)",
+  "params": {
+   "max_iter": 400,
+   "learning_rate": 0.08,
+   "random_state": 42
+  },
+  "holdout": {
+   "r2": 0.9032,
+   "mae_gbp": 6.529,
+   "rmse_gbp": 9.427,
+   "mape_pct": 10.98
+  },
+  "cv": {
+   "r2": {
+    "mean": 0.9029,
+    "std": 0.0016
+   },
+   "mae_gbp": {
+    "mean": 6.5418,
+    "std": 0.0383
+   },
+   "rmse_gbp": {
+    "mean": 9.4654,
+    "std": 0.0792
+   },
+   "mape_pct": {
+    "mean": 11.028,
+    "std": 0.0325
+   }
+  },
+  "fit_seconds": 5.6
+ },
+ "baseline": {
+  "name": "Linear regression (one-hot categoricals, scaled numerics)",
+  "holdout": {
+   "r2": 0.713,
+   "mae_gbp": 11.206,
+   "rmse_gbp": 16.232,
+   "mape_pct": 19.15
+  },
+  "cv": {
+   "r2": {
+    "mean": 0.7156,
+    "std": 0.0011
+   },
+   "mae_gbp": {
+    "mean": 11.183,
+    "std": 0.0301
+   },
+   "rmse_gbp": {
+    "mean": 16.2038,
+    "std": 0.0484
+   },
+   "mape_pct": {
+    "mean": 19.1,
+    "std": 0.0555
+   }
+  },
+  "fit_seconds": 1.3
+ },
+ "model_selection": {
+  "random_forest_60x_depth16": {
+   "r2": 0.8642,
+   "mae_gbp": 7.395,
+   "rmse_gbp": 11.165,
+   "mape_pct": 11.9,
+   "fit_seconds": 159.2
+  }
+ },
+ "leakage_check": {
+  "note": "Same split, with the notebook's feature set including the excluded columns.",
+  "linear": {
+   "r2": 0.7665,
+   "mae_gbp": 9.907,
+   "rmse_gbp": 14.642,
+   "mape_pct": 16.76
+  },
+  "random_forest_20x_depth16": {
+   "r2": 0.9242,
+   "mae_gbp": 5.511,
+   "rmse_gbp": 8.342,
+   "mape_pct": 9.01
+  }
+ },
+ "versions": {
+  "python": "3.12.10",
+  "scikit-learn": "1.8.0",
+  "numpy": "2.4.4",
+  "pandas": "2.3.3"
+ }
+}
