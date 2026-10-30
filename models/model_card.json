@@ -1,5 +1,5 @@
 {
- "trained_at": "2026-10-29",
+ "trained_at": "2026-10-30",
  "data": {
   "file": "travel_data.csv",
   "sha256": "4940b312e577fa5cc5f95bd053050f91cdf6a84a7841f74cc85fe95ae7a62e27",
@@ -73,7 +73,7 @@
     "std": 0.0325
    }
   },
-  "fit_seconds": 5.6
+  "fit_seconds": 9.5
  },
  "baseline": {
   "name": "Linear regression (one-hot categoricals, scaled numerics)",
@@ -101,7 +101,7 @@
     "std": 0.0555
    }
   },
-  "fit_seconds": 1.3
+  "fit_seconds": 1.6
  },
  "model_selection": {
   "random_forest_60x_depth16": {
@@ -109,11 +109,11 @@
    "mae_gbp": 7.395,
    "rmse_gbp": 11.165,
    "mape_pct": 11.9,
-   "fit_seconds": 159.2
+   "fit_seconds": 170.6
   }
  },
- "leakage_check": {
-  "note": "Same split, with the notebook's feature set including the excluded columns.",
+ "excluded_columns_check": {
+  "note": "Same split with the four excluded columns added back. These scores are what a leaky model would appear to achieve, and are why the columns are excluded.",
   "linear": {
    "r2": 0.7665,
    "mae_gbp": 9.907,
@@ -130,7 +130,7 @@
  "versions": {
   "python": "3.12.10",
   "scikit-learn": "1.8.0",
-  "numpy": "2.4.4",
+  "numpy": "2.4.2",
   "pandas": "2.3.3"
  }
 }

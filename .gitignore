@@ -4,5 +4,5 @@ venv
 __pycache__
 mlflow.db
 mlruns
-# Retrain outputs (models are rebuilt from the script; the model card is committed separately)
-retrain/output/
+
+.venv/

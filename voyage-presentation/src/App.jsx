@@ -670,12 +670,12 @@ const slides = [
             {
               icon: Train,
               title: "Routes & Services",
-              desc: "Multiple origin-destination pairs including Leeds↔York, Manchester↔London, with Standard and First Class tiers",
+              desc: "25 routes including Manchester to London and Exeter to York, with Standard, Flex and First classes",
             },
             {
               icon: Users,
               title: "Customer Segments",
-              desc: "Leisure travellers, business commuters, and daily commuters — each with distinct price sensitivities",
+              desc: "Leisure, business, commuter and student travellers, each with its own response to price",
             },
             {
               icon: BarChart3,
@@ -1116,8 +1116,8 @@ const slides = [
       <Tg text="Dataset" color={C.purple} />
       <Ti>Historical Booking Records</Ti>
       <Sb>
-        Source data captures the full picture of each trip — route, timing,
-        customer, and realized pricing. 17 features feed the model.
+        Each booking records the route, timing, customer and price. A feature
+        audit keeps the 13 features known at quote time.
       </Sb>
       <div
         style={{
@@ -1157,26 +1157,31 @@ const slides = [
               c: "Booking & Timing",
               items: [
                 "days_before_travel",
-                "booking_frequency_quarter",
+                "booking_frequency_qtr",
                 "booking_channel",
               ],
               color: C.secondary,
             },
             {
-              c: "Pricing & Revenue",
+              c: "Demand & Customer",
               items: [
-                "price_premium",
+                "demand_index",
+                "customer_segment",
+                "loyalty_status",
                 "average_spend_gbp",
-                "load_factor",
-                "seats_sold_realised",
-                "remaining_seats_realised",
               ],
               color: C.tertiary,
             },
             {
-              c: "Demand & Customer",
-              items: ["demand_index", "customer_segment", "loyalty_status"],
-              color: C.purple,
+              c: "Excluded at audit",
+              items: [
+                "base_price_at_booking",
+                "price_premium",
+                "seats_sold_realized",
+                "remaining_seats_realized",
+                "load_factor",
+              ],
+              color: C.tm,
             },
           ].map((g, i) => (
             <div key={i} style={{ marginBottom: 10 }}>
@@ -1228,7 +1233,7 @@ const slides = [
             <span
               style={{ fontSize: 11.5, color: C.tp, fontFamily: "Manrope" }}
             >
-              Target: <strong>ticket_price</strong> (regression)
+              Target: <strong>ticket_price_gbp</strong> (regression)
             </span>
           </div>
         </Cd>
@@ -1248,7 +1253,7 @@ const slides = [
               Preprocessing Pipeline
             </div>
             <CB>
-              <span style={{ color: C.tm }}># preprocess.ipynb workflow</span>
+              <span style={{ color: C.tm }}># train.py</span>
               {"\n"}
               <span style={{ color: C.primaryLight }}>import</span> pandas{" "}
               <span style={{ color: C.primaryLight }}>as</span> pd{"\n"}
@@ -1256,7 +1261,7 @@ const slides = [
               sklearn.preprocessing{" "}
               <span style={{ color: C.primaryLight }}>import</span>
               {"\n"}
-              {"  "}StandardScaler, OneHotEncoder{"\n"}
+              {"  "}OneHotEncoder, OrdinalEncoder, StandardScaler{"\n"}
               <span style={{ color: C.primaryLight }}>from</span>{" "}
               sklearn.model_selection{" "}
               <span style={{ color: C.primaryLight }}>import</span>
@@ -1266,12 +1271,14 @@ const slides = [
               df = pd.read_csv(
               <span style={{ color: C.suc }}>"travel_data.csv"</span>){"\n"}
               {"\n"}
-              <span style={{ color: C.tm }}># Feature engineering</span>
+              <span style={{ color: C.tm }}># Feature audit, quote-time only</span>
               {"\n"}
-              df[<span style={{ color: C.suc }}>'load_x_demand'</span>] = \
-              {"\n"}
-              {"  "}df[<span style={{ color: C.suc }}>'load_factor'</span>] *
-              df[<span style={{ color: C.suc }}>'demand_index'</span>]
+              EXCLUDED = [<span style={{ color: C.suc }}>"Price_Premium"</span>,{"\n"}
+              {"  "}<span style={{ color: C.suc }}>"Base_Price_At_Booking"</span>,{"\n"}
+              {"  "}<span style={{ color: C.suc }}>"Seats_Sold_Realized"</span>,{"\n"}
+              {"  "}<span style={{ color: C.suc }}>"Remaining_Seats_Realized"</span>,{"\n"}
+              {"  "}<span style={{ color: C.suc }}>"Load_Factor"</span>]{"\n"}
+              X = df[FEATURES]
             </CB>
           </Cd>
           <Cd>
@@ -1293,18 +1300,21 @@ const slides = [
             >
               {[
                 {
-                  t: "One-Hot Encoding",
-                  d: "origin, destination, booking_channel",
+                  t: "Feature Audit",
+                  d: "five columns excluded, known only after booking",
                 },
                 {
-                  t: "Label Encoding",
-                  d: "seat_class, loyalty_status (ordinal)",
+                  t: "Ordinal Encoding",
+                  d: "categories for gradient boosting",
+                },
+                {
+                  t: "One-Hot Encoding",
+                  d: "categories for the linear baseline",
                 },
                 {
                   t: "Standard Scaling",
-                  d: "continuous features for model convergence",
+                  d: "numeric features for the linear baseline",
                 },
-                { t: "Interaction Features", d: "load_factor × demand_index" },
               ].map((it, i) => (
                 <div
                   key={i}
@@ -1362,8 +1372,8 @@ const slides = [
       <Tg text="Training" />
       <Ti>Model Selection & Evaluation</Ti>
       <Sb>
-        Multiple regression algorithms were trained, cross-validated, and
-        compared. The best performer is serialized as model.pkl.
+        Three model families were compared on quote-time features only.
+        Gradient boosting won and is saved as model.joblib.
       </Sb>
       <div
         style={{
@@ -1387,15 +1397,15 @@ const slides = [
             Models Compared
           </div>
           {[
-            { m: "Linear Regression", p: "Baseline benchmark", c: C.tm },
+            { m: "Linear Regression", p: "Baseline · R² 0.713", c: C.tm },
             {
               m: "Random Forest",
-              p: "Non-linear, robust to scale",
+              p: "R² 0.864 · 17 MB",
               c: C.secondary,
             },
             {
               m: "Gradient Boosting",
-              p: "Strong tabular performance",
+              p: "Shipped · R² 0.903 · 0.6 MB",
               c: C.tertiary,
             },
           ].map((it, i) => (
@@ -1474,21 +1484,18 @@ const slides = [
               sklearn.ensemble{" "}
               <span style={{ color: C.primaryLight }}>import</span>
               {"\n"}
-              {"  "}GradientBoostingRegressor{"\n"}
+              {"  "}HistGradientBoostingRegressor{"\n"}
               <span style={{ color: C.primaryLight }}>import</span> mlflow{"\n"}
               {"\n"}
-              mlflow.start_run(){"\n"}
-              model = GradientBoostingRegressor({"\n"}
-              {"  "}n_estimators=<span style={{ color: C.secondary }}>300</span>
-              ,{"\n"}
-              {"  "}max_depth=<span style={{ color: C.secondary }}>6</span>,
-              {"\n"}
-              {"  "}learning_rate=
-              <span style={{ color: C.secondary }}>0.05</span>
-              {"\n"}){"\n"}
+              reg = HistGradientBoostingRegressor({"\n"}
+              {"  "}max_iter=<span style={{ color: C.secondary }}>400</span>,{"\n"}
+              {"  "}learning_rate=<span style={{ color: C.secondary }}>0.08</span>,{"\n"}
+              {"  "}random_state=<span style={{ color: C.secondary }}>42</span>){"\n"}
+              model = Pipeline([(<span style={{ color: C.suc }}>"pre"</span>, pre),{" "}
+              (<span style={{ color: C.suc }}>"reg"</span>, reg)]){"\n"}
               model.fit(X_train, y_train){"\n"}
               mlflow.sklearn.log_model(model,{" "}
-              <span style={{ color: C.suc }}>"voyage"</span>)
+              name=<span style={{ color: C.suc }}>"fare_model"</span>)
             </CB>
           </Cd>
           <Cd>
@@ -1516,7 +1523,7 @@ const slides = [
               <span
                 style={{ fontSize: 11.5, color: C.ts, fontFamily: "Manrope" }}
               >
-                Leeds → York, Standard, 21 days out
+                Manchester → London, Standard, 21 days out
               </span>
             </div>
             <div
@@ -1535,12 +1542,12 @@ const slides = [
                   fontFamily: "Space Grotesk",
                 }}
               >
-                £37.30
+                £52.83
               </span>
               <span
                 style={{ fontSize: 11, color: C.tm, fontFamily: "Manrope" }}
               >
-                demand 0.92 · load 0.44
+                demand 0.92 · baseline £51.60
               </span>
             </div>
             <div
@@ -1576,8 +1583,8 @@ const slides = [
       <Tg text="Explainability" color={C.secondary} />
       <Ti>SHAP Values & MLflow Tracking</Ti>
       <Sb>
-        Commercial teams don't act on recommendations they can't explain. SHAP
-        and MLflow are first-class requirements — not afterthoughts.
+        Commercial teams don't act on prices they can't explain. SHAP and
+        MLflow are built in from the start.
       </Sb>
       <div
         style={{
@@ -1598,17 +1605,17 @@ const slides = [
               letterSpacing: 1,
             }}
           >
-            Top SHAP Feature Importance
+            Average SHAP Effect in Pounds
           </div>
           {[
-            { f: "demand_index", v: 95, c: C.primary },
-            { f: "load_factor", v: 82, c: C.secondary },
-            { f: "days_before_travel", v: 71, c: C.tertiary },
-            { f: "seat_class", v: 58, c: C.purple },
-            { f: "route_category", v: 52, c: C.primary },
-            { f: "booking_channel", v: 44, c: C.secondary },
-            { f: "customer_segment", v: 38, c: C.tertiary },
-            { f: "average_spend_gbp", v: 32, c: C.purple },
+            { f: "distance_km", v: 100, g: "16.08", c: C.primary },
+            { f: "days_before_travel", v: 63, g: "10.18", c: C.secondary },
+            { f: "seat_class", v: 47, g: "7.55", c: C.tertiary },
+            { f: "demand_index", v: 25, g: "3.98", c: C.purple },
+            { f: "total_seats", v: 13, g: "2.05", c: C.primary },
+            { f: "booking_channel", v: 4, g: "0.67", c: C.secondary },
+            { f: "route_category", v: 4, g: "0.64", c: C.tertiary },
+            { f: "destination", v: 3, g: "0.48", c: C.purple },
           ].map((it, i) => (
             <div key={i} style={{ marginBottom: 8 }}>
               <div
@@ -1634,7 +1641,7 @@ const slides = [
                     fontFamily: "JetBrains Mono",
                   }}
                 >
-                  {it.v}%
+                  £{it.g}
                 </span>
               </div>
               <div
@@ -1665,7 +1672,8 @@ const slides = [
               fontStyle: "italic",
             }}
           >
-            Demand signals dominate; customer + booking context refine the price
+            Distance, lead time and seat class set most of the fare. Average
+            effect across 5,000 holdout bookings.
           </div>
         </Cd>
         <div>
@@ -1684,19 +1692,20 @@ const slides = [
               MLflow Tracking
             </div>
             <CB>
-              <span style={{ color: C.tm }}># Every run logs:</span>
+              <span style={{ color: C.tm }}># Every run of train.py logs</span>
               {"\n"}
-              mlflow.log_params(param_dict){"\n"}
-              mlflow.log_metric(<span style={{ color: C.suc }}>"rmse"</span>,
-              rmse){"\n"}
-              mlflow.log_metric(<span style={{ color: C.suc }}>"mae"</span>,
-              mae){"\n"}
-              mlflow.log_metric(<span style={{ color: C.suc }}>"r2"</span>, r2)
+              mlflow.set_experiment(
+              <span style={{ color: C.suc }}>"voyagerail-fare-model"</span>){"\n"}
+              mlflow.log_params(gbm_params){"\n"}
+              mlflow.log_param(<span style={{ color: C.suc }}>"excluded"</span>,
+              excluded){"\n"}
+              mlflow.log_metric(
+              <span style={{ color: C.suc }}>"model_holdout_r2"</span>, r2){"\n"}
+              mlflow.log_metric(
+              <span style={{ color: C.suc }}>"model_holdout_mae_gbp"</span>, mae)
               {"\n"}
-              mlflow.log_artifact(
-              <span style={{ color: C.suc }}>"shap_summary.png"</span>){"\n"}
               mlflow.sklearn.log_model(model,{" "}
-              <span style={{ color: C.suc }}>"v1"</span>)
+              name=<span style={{ color: C.suc }}>"fare_model"</span>)
             </CB>
           </Cd>
           <Cd>
@@ -1726,9 +1735,9 @@ const slides = [
                 borderLeft: `3px solid ${C.primary}`,
               }}
             >
-              "We recommend £37.30 for this Leeds→York booking because demand
-              sits at 92% of capacity, with 21 days lead time and moderate load
-              factor — historically this configuration yields the best revenue."
+              "We quote £52.83 for this Manchester to London booking. Booking 21
+              days ahead adds £14.77, while the 169 km distance and a demand
+              forecast of 0.92 bring it down."
             </div>
             <div
               style={{
@@ -1738,7 +1747,7 @@ const slides = [
                 fontFamily: "Manrope",
               }}
             >
-              A defensible, auditable decision — not a black-box output.
+              A price the team can defend, not a black box.
             </div>
           </Cd>
         </div>
@@ -1827,7 +1836,7 @@ const slides = [
                 <div
                   style={{ fontSize: 11, color: C.ts, fontFamily: "Manrope" }}
                 >
-                  Streamlit UI (:8501) — 17 booking features
+                  Streamlit UI (:8501), 8 quote fields
                 </div>
               </div>
             </div>
@@ -1923,7 +1932,7 @@ const slides = [
                 <div
                   style={{ fontSize: 11, color: C.ts, fontFamily: "Manrope" }}
                 >
-                  Loads model.pkl · predicts ticket_price
+                  Loads model.joblib · fare and SHAP drivers
                 </div>
               </div>
             </div>
@@ -1971,7 +1980,7 @@ const slides = [
                 <div
                   style={{ fontSize: 11, color: C.ts, fontFamily: "Manrope" }}
                 >
-                  Price, demand index, fare band → UI visualization
+                  Fare, baseline, fare band, drivers → fare desk
                 </div>
               </div>
             </div>
@@ -2057,7 +2066,7 @@ const slides = [
               </div>
               <div>
                 <Bg label="Scikit-learn" color={C.primary} />
-                <Bg label="XGBoost" color={C.primary} />
+                <Bg label="Gradient Boosting" color={C.primary} />
                 <Bg label="SHAP" color={C.primary} />
                 <Bg label="MLflow" color={C.primary} />
               </div>
@@ -2075,7 +2084,6 @@ const slides = [
               </div>
               <div>
                 <Bg label="Streamlit" color={C.secondary} />
-                <Bg label="Plotly" color={C.secondary} />
                 <Bg label="Docker" color={C.secondary} />
                 <Bg label="Compose" color={C.secondary} />
               </div>
@@ -2121,22 +2129,22 @@ const slides = [
             {
               icon: Server,
               t: "API Settings",
-              d: "Configurable FastAPI base URL, health check",
+              d: "Configurable FastAPI base URL and connection status",
             },
             {
               icon: Sparkles,
               t: "Sample Scenarios",
-              d: "Leisure Saver, Business Peak, Weekend Commuter presets",
+              d: "Business at short notice, leisure booked ahead, student same day",
             },
             {
               icon: BarChart3,
-              t: "Input Form",
-              d: "All 17 features exposed as inputs, dropdowns, selectors",
+              t: "Quote Form",
+              d: "Eight quote fields, with destinations that follow the origin",
             },
             {
               icon: Zap,
-              t: "Run Prediction",
-              d: "Single click sends payload, returns price + insights",
+              t: "Quote Fare",
+              d: "One click returns the fare, the price curve and the drivers",
             },
           ].map((it, i) => (
             <IR
@@ -2203,7 +2211,7 @@ const slides = [
                     fontFamily: "Space Grotesk",
                   }}
                 >
-                  £37.30
+                  £52.83
                 </div>
               </div>
               <div>
@@ -2250,16 +2258,16 @@ const slides = [
               lineHeight: 1.6,
             }}
           >
-            <strong style={{ color: C.tp }}>Three result views:</strong>
+            <strong style={{ color: C.tp }}>Four result tabs</strong>
             <br />
-            <span style={{ color: C.tertiary }}>•</span> Insight View — visual
-            with fare band & comparison chart
+            <span style={{ color: C.tertiary }}>•</span> Price curve across
+            the booking window
             <br />
-            <span style={{ color: C.secondary }}>•</span> API Response — raw
-            JSON for debugging
+            <span style={{ color: C.secondary }}>•</span> Why this fare, the
+            SHAP drivers in pounds
             <br />
-            <span style={{ color: C.primary }}>•</span> cURL — exportable
-            command for API testing
+            <span style={{ color: C.primary }}>•</span> API response and a
+            cURL command to repeat the call
           </div>
         </Cd>
       </div>

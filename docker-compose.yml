@@ -5,11 +5,6 @@ services:
       dockerfile: Dockerfile.backend
     ports:
       - "8000:8000"
-    volumes:
-      - .:/app
-    environment:
-      MLFLOW_TRACKING_URI: sqlite:////app/preprocessing/mlflow.db
-      MLFLOW_MODEL_URI: file:///app/preprocessing/mlruns/2/models/m-16f23089d41e4faa84a7979dd787394a/artifacts
     command: uvicorn app:app --host 0.0.0.0 --port 8000
     restart: always
 
@@ -19,8 +14,8 @@ services:
       dockerfile: Dockerfile.streamlit
     ports:
       - "8501:8501"
-    volumes:
-      - .:/app
+    environment:
+      API_URL: http://backend:8000
     depends_on:
       - backend
     command: streamlit run streamlit_app.py --server.port 8501 --server.address 0.0.0.0

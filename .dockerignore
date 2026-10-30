@@ -1,0 +1,11 @@
+# Keeps the Docker build context small: only code, models and requirements go into the images.
+.venv/
+venv/
+__pycache__/
+mlruns/
+mlflow.db
+source-data/
+preprocessing/
+voyage-presentation/
+.git/
+.env

@@ -1,13 +1,15 @@
-"""Retrains the VoyageRail fare model on quote-time features only, and writes the model, baseline and model card.
+"""Trains the VoyageRail fare model and its linear baseline, and writes them to models/ with a model card.
 
-Why a retrain: the original notebook's served model was never committed, and its features leaked the
-answer. `Price_Premium` is ticket price minus base fare (exact in every row where it is present), and
-`Seats_Sold_Realized`, `Remaining_Seats_Realized` and `Load_Factor` are final per-departure tallies
-(seats sold equals that departure's booking count in 100% of departures), unknown when a fare is quoted.
+Feature audit first: the model uses only what a booking desk knows when it quotes. Five columns in the
+source data give the fare away or are known only after the fact, so they are excluded:
+  Base_Price_At_Booking plus Price_Premium equals the ticket price (exact in every row where both are present), and
+  Seats_Sold_Realized, Remaining_Seats_Realized and Load_Factor are final per-departure tallies (seats sold
+  equals that departure's booking count in every departure).
 
 Usage (from the repo root):
-    python retrain/train_voyagerail.py --data source-data/travel_data.csv
-    add --skip-comparison to skip the slow Random Forest and leakage reference fits (~7 minutes)
+    python train.py                      # full run with the model comparison, about 8 minutes
+    python train.py --skip-comparison    # gradient boosting and baseline only, about a minute
+Every run is logged to MLflow (sqlite:///mlflow.db). View it with: mlflow ui --backend-store-uri sqlite:///mlflow.db
 """
 from __future__ import annotations
 
@@ -48,7 +50,7 @@ EXCLUDED = {
     "Remaining_Seats_Realized": "It is total seats minus final seats sold, which is not known when a fare is quoted.",
     "Load_Factor": "It is final seats sold over total seats, which is not known when a fare is quoted.",
 }
-NOTEBOOK_NUMERIC = ["Distance_km", "Booking_Frequency_Qtr", "Average_Spend_GBP", "Total_Seats", "Seats_Sold_Realized",
+WITH_EXCLUDED_NUMERIC = ["Distance_km", "Booking_Frequency_Qtr", "Average_Spend_GBP", "Total_Seats", "Seats_Sold_Realized",
                     "Remaining_Seats_Realized", "Demand_Index", "Days_Before_Travel", "Price_Premium", "Load_Factor"]
 
 GBM_PARAMS = dict(max_iter=400, learning_rate=0.08, random_state=SEED)
@@ -67,7 +69,7 @@ DATA_NOTES = [
 def load(path: Path) -> pd.DataFrame:
     df = pd.read_csv(path)
     df["Loyalty_Status"] = df["Loyalty_Status"].fillna("None")   # as the notebook did: no tier recorded
-    # Only for the leakage reference fit, mirroring the notebook's fills
+    # Only for the excluded-columns check: fill the two price columns so they can be scored
     df["Base_Price_At_Booking"] = df["Base_Price_At_Booking"].fillna(df[TARGET])
     df["Price_Premium"] = df["Price_Premium"].fillna(df[TARGET] - df["Base_Price_At_Booking"])
     return df
@@ -136,20 +138,31 @@ def reference(train: pd.DataFrame) -> dict:
     }
 
 
-SAMPLE_COLUMNS = ["Booking_ID", TARGET, "Origin", "Destination", "Seat_Class", "Booking_Channel", "Customer_Segment",
-                  "Loyalty_Status", "Days_Before_Travel", "Demand_Index", "Booking_Frequency_Qtr", "Average_Spend_GBP",
-                  "Total_Seats"]
+def log_to_mlflow(card: dict, model: Pipeline, base: Pipeline) -> None:
+    """Records the run in MLflow so every training run stays comparable."""
+    import mlflow
+    import mlflow.sklearn
 
-
-def write_samples(test: pd.DataFrame, out: Path, n: int = 200) -> None:
-    """Holdout bookings for the console's 'Load sample', so a sample is never a row the model trained on."""
-    test.sample(n=n, random_state=SEED)[SAMPLE_COLUMNS].to_csv(out / "samples.csv", index=False)
+    mlflow.set_tracking_uri("sqlite:///mlflow.db")
+    mlflow.set_experiment("voyagerail-fare-model")
+    with mlflow.start_run(run_name="gradient-boosting-quote-time"):
+        mlflow.log_params({f"gbm_{k}": v for k, v in GBM_PARAMS.items()})
+        mlflow.log_param("features", ",".join(FEATURES))
+        mlflow.log_param("excluded", ",".join(EXCLUDED))
+        for block in ("model", "baseline"):
+            for k, v in card[block]["holdout"].items():
+                mlflow.log_metric(f"{block}_holdout_{k}", v)
+            for k, v in card[block]["cv"].items():
+                mlflow.log_metric(f"{block}_cv_{k}_mean", v["mean"])
+        mlflow.sklearn.log_model(model, name="fare_model")
+        mlflow.sklearn.log_model(base, name="linear_baseline")
+    print("logged run to MLflow", flush=True)
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--data", type=Path, required=True)
-    ap.add_argument("--out", type=Path, default=Path(__file__).resolve().parent / "output")
+    ap.add_argument("--data", type=Path, default=Path(__file__).resolve().parent / "source-data" / "travel_data.csv")
+    ap.add_argument("--out", type=Path, default=Path(__file__).resolve().parent / "models")
     ap.add_argument("--skip-comparison", action="store_true")
     args = ap.parse_args()
 
@@ -170,10 +183,11 @@ def main() -> None:
         _, rf_hold, rf_secs = holdout(lambda: forest(NUMERIC, 60), train[FEATURES], y_tr, test[FEATURES], y_te)
         comparison = {"random_forest_60x_depth16": {**rf_hold, "fit_seconds": rf_secs}}
         print(f"rf holdout {rf_hold}", flush=True)
-        nb = NOTEBOOK_NUMERIC + CATEGORICAL
-        _, lk_lin, _ = holdout(lambda: linear(NOTEBOOK_NUMERIC), train[nb], y_tr, test[nb], y_te)
-        _, lk_rf, _ = holdout(lambda: forest(NOTEBOOK_NUMERIC, 20), train[nb], y_tr, test[nb], y_te)
-        leakage = {"note": "Same split, with the notebook's feature set including the excluded columns.",
+        nb = WITH_EXCLUDED_NUMERIC + CATEGORICAL
+        _, lk_lin, _ = holdout(lambda: linear(WITH_EXCLUDED_NUMERIC), train[nb], y_tr, test[nb], y_te)
+        _, lk_rf, _ = holdout(lambda: forest(WITH_EXCLUDED_NUMERIC, 20), train[nb], y_tr, test[nb], y_te)
+        leakage = {"note": "Same split with the four excluded columns added back. These scores are what a leaky model "
+                           "would appear to achieve, and are why the columns are excluded.",
                    "linear": lk_lin, "random_forest_20x_depth16": lk_rf}
         print(f"leaky linear {lk_lin}  leaky rf {lk_rf}", flush=True)
 
@@ -181,7 +195,6 @@ def main() -> None:
     joblib.dump(model, args.out / "model.joblib", compress=3)
     joblib.dump(base, args.out / "baseline.joblib", compress=3)
     (args.out / "reference.json").write_text(json.dumps(reference(train), indent=1), encoding="utf-8")
-    write_samples(test, args.out)
     card = {
         "trained_at": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
         "data": {"file": args.data.name, "sha256": hashlib.sha256(args.data.read_bytes()).hexdigest(),
@@ -197,11 +210,12 @@ def main() -> None:
         "baseline": {"name": "Linear regression (one-hot categoricals, scaled numerics)",
                      "holdout": lin_hold, "cv": lin_cv, "fit_seconds": lin_secs},
         "model_selection": comparison,
-        "leakage_check": leakage,
+        "excluded_columns_check": leakage,
         "versions": {"python": platform.python_version(), "scikit-learn": sklearn.__version__,
                      "numpy": np.__version__, "pandas": pd.__version__},
     }
     (args.out / "model_card.json").write_text(json.dumps(card, indent=1), encoding="utf-8")
+    log_to_mlflow(card, model, base)
     print(f"wrote {args.out}", flush=True)
 
 

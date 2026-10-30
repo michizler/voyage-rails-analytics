@@ -1,0 +1,272 @@
+{
+ "routes": [
+  {
+   "origin": "Aberdeen",
+   "destination": "Leeds",
+   "distance_km": 264,
+   "route_category": "Medium",
+   "total_seats": 323,
+   "bookings": 16426
+  },
+  {
+   "origin": "Belfast",
+   "destination": "Leeds",
+   "distance_km": 207,
+   "route_category": "Medium",
+   "total_seats": 236,
+   "bookings": 13759
+  },
+  {
+   "origin": "Birmingham",
+   "destination": "Liverpool",
+   "distance_km": 278,
+   "route_category": "Medium",
+   "total_seats": 374,
+   "bookings": 25357
+  },
+  {
+   "origin": "Brighton",
+   "destination": "Leicester",
+   "distance_km": 357,
+   "route_category": "Long",
+   "total_seats": 279,
+   "bookings": 15734
+  },
+  {
+   "origin": "Bristol",
+   "destination": "Glasgow",
+   "distance_km": 198,
+   "route_category": "Medium",
+   "total_seats": 217,
+   "bookings": 13275
+  },
+  {
+   "origin": "Bristol",
+   "destination": "Oxford",
+   "distance_km": 198,
+   "route_category": "Medium",
+   "total_seats": 365,
+   "bookings": 24807
+  },
+  {
+   "origin": "Cardiff",
+   "destination": "Coventry",
+   "distance_km": 362,
+   "route_category": "Long",
+   "total_seats": 339,
+   "bookings": 22602
+  },
+  {
+   "origin": "Coventry",
+   "destination": "London",
+   "distance_km": 289,
+   "route_category": "Medium",
+   "total_seats": 232,
+   "bookings": 11240
+  },
+  {
+   "origin": "Edinburgh",
+   "destination": "Exeter",
+   "distance_km": 177,
+   "route_category": "Medium",
+   "total_seats": 309,
+   "bookings": 15666
+  },
+  {
+   "origin": "Exeter",
+   "destination": "Reading",
+   "distance_km": 268,
+   "route_category": "Medium",
+   "total_seats": 196,
+   "bookings": 12073
+  },
+  {
+   "origin": "Exeter",
+   "destination": "York",
+   "distance_km": 178,
+   "route_category": "Medium",
+   "total_seats": 171,
+   "bookings": 11361
+  },
+  {
+   "origin": "Leeds",
+   "destination": "Birmingham",
+   "distance_km": 178,
+   "route_category": "Medium",
+   "total_seats": 404,
+   "bookings": 21118
+  },
+  {
+   "origin": "Leicester",
+   "destination": "Southampton",
+   "distance_km": 241,
+   "route_category": "Medium",
+   "total_seats": 325,
+   "bookings": 19703
+  },
+  {
+   "origin": "Liverpool",
+   "destination": "Nottingham",
+   "distance_km": 47,
+   "route_category": "Short",
+   "total_seats": 391,
+   "bookings": 20847
+  },
+  {
+   "origin": "London",
+   "destination": "Aberdeen",
+   "distance_km": 64,
+   "route_category": "Short",
+   "total_seats": 257,
+   "bookings": 16282
+  },
+  {
+   "origin": "Manchester",
+   "destination": "London",
+   "distance_km": 169,
+   "route_category": "Medium",
+   "total_seats": 409,
+   "bookings": 24495
+  },
+  {
+   "origin": "Milton Keynes",
+   "destination": "Aberdeen",
+   "distance_km": 128,
+   "route_category": "Medium",
+   "total_seats": 238,
+   "bookings": 11663
+  },
+  {
+   "origin": "Reading",
+   "destination": "Leeds",
+   "distance_km": 248,
+   "route_category": "Medium",
+   "total_seats": 319,
+   "bookings": 13885
+  },
+  {
+   "origin": "Sheffield",
+   "destination": "Bristol",
+   "distance_km": 138,
+   "route_category": "Medium",
+   "total_seats": 324,
+   "bookings": 19060
+  },
+  {
+   "origin": "Sheffield",
+   "destination": "Glasgow",
+   "distance_km": 92,
+   "route_category": "Short",
+   "total_seats": 292,
+   "bookings": 15790
+  },
+  {
+   "origin": "Sheffield",
+   "destination": "London",
+   "distance_km": 351,
+   "route_category": "Long",
+   "total_seats": 314,
+   "bookings": 14401
+  },
+  {
+   "origin": "Southampton",
+   "destination": "Bristol",
+   "distance_km": 199,
+   "route_category": "Medium",
+   "total_seats": 184,
+   "bookings": 9796
+  },
+  {
+   "origin": "Southampton",
+   "destination": "Nottingham",
+   "distance_km": 226,
+   "route_category": "Medium",
+   "total_seats": 274,
+   "bookings": 16238
+  },
+  {
+   "origin": "York",
+   "destination": "Birmingham",
+   "distance_km": 91,
+   "route_category": "Short",
+   "total_seats": 360,
+   "bookings": 20074
+  },
+  {
+   "origin": "York",
+   "destination": "Liverpool",
+   "distance_km": 171,
+   "route_category": "Medium",
+   "total_seats": 160,
+   "bookings": 10118
+  }
+ ],
+ "categories": {
+  "Seat_Class": [
+   "First",
+   "Flex",
+   "Standard"
+  ],
+  "Booking_Channel": [
+   "Agent",
+   "Mobile",
+   "Partner",
+   "Web"
+  ],
+  "Customer_Segment": [
+   "Business",
+   "Commuter",
+   "Leisure",
+   "Student"
+  ],
+  "Loyalty_Status": [
+   "Gold",
+   "None",
+   "Platinum",
+   "Silver"
+  ]
+ },
+ "segment_defaults": {
+  "Business": {
+   "booking_frequency_qtr": 5.0,
+   "average_spend_gbp": 62.31
+  },
+  "Commuter": {
+   "booking_frequency_qtr": 7.0,
+   "average_spend_gbp": 37.74
+  },
+  "Leisure": {
+   "booking_frequency_qtr": 3.0,
+   "average_spend_gbp": 33.45
+  },
+  "Student": {
+   "booking_frequency_qtr": 3.0,
+   "average_spend_gbp": 23.66
+  }
+ },
+ "ranges": {
+  "days_before_travel": [
+   0,
+   89
+  ],
+  "demand_index": [
+   0.658,
+   1.52
+  ],
+  "demand_index_median": 1.055
+ },
+ "fare_bands_gbp": {
+  "First": {
+   "low_below": 73.45,
+   "high_above": 106.65
+  },
+  "Flex": {
+   "low_below": 51.19,
+   "high_above": 74.0
+  },
+  "Standard": {
+   "low_below": 42.06,
+   "high_above": 60.67
+  }
+ }
+}
